@@ -1,3 +1,4 @@
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import viewsets, generics
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -20,6 +21,8 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.is_superuser or self.request.user.groups.filter(name='Администраторы DRF').exists():
             return Course.objects.all()
+        elif self.request.user.is_anonymous:
+            return None
         else:
             return Course.objects.filter(owner=self.request.user)
 
@@ -92,6 +95,7 @@ class SubscriptionCreateAPIView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    @swagger_auto_schema(operation_description="Add or remove the subscription on a course")
     def post(self, *args, **kwargs):
         user = self.request.user
         course_id = self.request.data.get('course')
