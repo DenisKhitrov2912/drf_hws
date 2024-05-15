@@ -11,13 +11,6 @@ from users.models import User
 
 @shared_task
 def sending_mail(pk: int, date: datetime.datetime):
-    # send_mail(
-    #     subject=f"Курс обновлен",
-    #     message=f"Курс получил обновления",
-    #     from_email=settings.EMAIL_HOST_USER,
-    #     recipient_list=['Hitrov.95@yandex.ru'],
-    #     fail_silently=False,
-    # )
     instance = Course.objects.filter(id=pk).first()
     if instance:
         hour_delta = (instance.last_update - date).total_seconds() / 3600
@@ -27,14 +20,13 @@ def sending_mail(pk: int, date: datetime.datetime):
                 subscribers = []
                 for sub in subs:
                     subscribers.append(User.objects.get(id=sub.user.id).email)
-                response = send_mail(
+                send_mail(
                     subject=f"Курс {instance.name} обновлен",
                     message=f"Курс {instance.name} получил обновления",
                     from_email=settings.EMAIL_HOST_USER,
                     recipient_list=subscribers,
                     fail_silently=False,
                 )
-                print(response)
 
 
 @shared_task

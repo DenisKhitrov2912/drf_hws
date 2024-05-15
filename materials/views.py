@@ -56,6 +56,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         sending_mail.delay(instance.id, date)
         return Response(serializer.data)
 
+
 class LessonCreateAPIView(generics.CreateAPIView):
     serializer_class = LessonSerializer
     permission_classes = [IsAuthenticated, IsAdminUser | IsUserOwner]
@@ -104,7 +105,7 @@ class LessonUpdateAPIView(generics.UpdateAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
-        sending_mail.delay(instance.id, date)
+        sending_mail.delay(instance.course.id, date)
         return Response(serializer.data)
 
 
