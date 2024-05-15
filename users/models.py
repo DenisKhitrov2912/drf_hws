@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -14,7 +16,7 @@ class User(AbstractUser):
     phone = models.CharField(verbose_name='телефон', **NULLABLE)
     city = models.CharField(max_length=50, verbose_name='город', **NULLABLE)
     is_active = models.BooleanField(default='True', verbose_name='активность')
-
+    last_login = models.DateTimeField(auto_now=True, verbose_name="Последний вход", **NULLABLE)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 

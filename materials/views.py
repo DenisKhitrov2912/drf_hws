@@ -45,30 +45,6 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = CourseSerializer(paginated_queryset, many=True)
         return self.get_paginated_response(serializer.data)
 
-    # def partial_update(self, request, *args, **kwargs):
-    #     user = self.request.user
-    #     course_id = self.get_object().id
-    #     course_item = get_object_or_404(Course, pk=course_id)
-    #     subs_item = Subscription.objects.filter(
-    #         user=user, course=course_item
-    #     )
-    #
-    #     if subs_item.exists():
-    #         sending_mail.delay()
-    #     return super().partial_update(request, *args, **kwargs)
-    #
-    # def update(self, request, *args, **kwargs):
-    #     user = self.request.user
-    #     course_id = self.get_object().id
-    #     course_item = get_object_or_404(Course, pk=course_id)
-    #     subs_item = Subscription.objects.filter(
-    #         user=user, course=course_item
-    #     )
-    #
-    #     if subs_item.exists():
-    #         sending_mail.delay()
-    #     return super().update(request, *args, **kwargs)
-
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
@@ -122,8 +98,9 @@ class LessonUpdateAPIView(generics.UpdateAPIView):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        date = instance.last_update
-        instance.last_update = datetime.datetime.now()
+        date = instance.course.last_update
+        instance.course.last_update = datetime.datetime.now()
+        instance.course.save(update_fields=['last_update'])
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)

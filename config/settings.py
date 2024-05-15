@@ -119,7 +119,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'ru-ru'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
@@ -141,9 +141,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 EMAIL_HOST = 'smtp.yandex.ru'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
+EMAIL_PORT = 465
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
@@ -185,8 +185,8 @@ CELERY_TASK_TIME_LIMIT = 30 * 60
 
 CELERY_BEAT_SCHEDULE = {
     'task-name': {
-        'task': 'materials.tasks.#send_mail',  # Путь к задаче
-        'schedule': timedelta(minutes=10),  # Расписание выполнения задачи (например, каждые 10 минут)
+        'task': 'materials.tasks.check_login',  # Путь к задаче
+        'schedule': timedelta(days=1),  # Расписание выполнения задачи (например, каждые 10 минут)
     },
 }
 
