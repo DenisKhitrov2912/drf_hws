@@ -1,3 +1,5 @@
+import datetime
+
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import viewsets, generics
 from rest_framework.response import Response
@@ -7,6 +9,8 @@ from materials.models import Course, Lesson, Subscription
 from materials.paginators import MaterialsPagination
 from materials.serializers import CourseSerializer, LessonSerializer, SubscriptionSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+
+from materials.tasks import sending_mail
 from users.permissions import IsUserAdmDRF, IsUserOwner
 
 
@@ -41,6 +45,40 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = CourseSerializer(paginated_queryset, many=True)
         return self.get_paginated_response(serializer.data)
 
+    # def partial_update(self, request, *args, **kwargs):
+    #     user = self.request.user
+    #     course_id = self.get_object().id
+    #     course_item = get_object_or_404(Course, pk=course_id)
+    #     subs_item = Subscription.objects.filter(
+    #         user=user, course=course_item
+    #     )
+    #
+    #     if subs_item.exists():
+    #         sending_mail.delay()
+    #     return super().partial_update(request, *args, **kwargs)
+    #
+    # def update(self, request, *args, **kwargs):
+    #     user = self.request.user
+    #     course_id = self.get_object().id
+    #     course_item = get_object_or_404(Course, pk=course_id)
+    #     subs_item = Subscription.objects.filter(
+    #         user=user, course=course_item
+    #     )
+    #
+    #     if subs_item.exists():
+    #         sending_mail.delay()
+    #     return super().update(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        date = instance.last_update
+        instance.last_update = datetime.datetime.now()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        sending_mail.delay(instance.id, date)
+        return Response(serializer.data)
 
 class LessonCreateAPIView(generics.CreateAPIView):
     serializer_class = LessonSerializer
@@ -80,6 +118,17 @@ class LessonUpdateAPIView(generics.UpdateAPIView):
     serializer_class = LessonSerializer
     queryset = Lesson.objects.all()
     permission_classes = [IsAuthenticated, IsUserAdmDRF | IsUserOwner]
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        date = instance.last_update
+        instance.last_update = datetime.datetime.now()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        sending_mail.delay(instance.id, date)
+        return Response(serializer.data)
 
 
 class LessonDestroyAPIView(generics.DestroyAPIView):
