@@ -1,3 +1,6 @@
+import datetime
+
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import viewsets, generics
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -6,6 +9,8 @@ from materials.models import Course, Lesson, Subscription
 from materials.paginators import MaterialsPagination
 from materials.serializers import CourseSerializer, LessonSerializer, SubscriptionSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+
+from materials.tasks import sending_mail
 from users.permissions import IsUserAdmDRF, IsUserOwner
 
 
@@ -20,6 +25,8 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.is_superuser or self.request.user.groups.filter(name='Администраторы DRF').exists():
             return Course.objects.all()
+        elif self.request.user.is_anonymous:
+            return None
         else:
             return Course.objects.filter(owner=self.request.user)
 
@@ -37,6 +44,17 @@ class CourseViewSet(viewsets.ModelViewSet):
         paginated_queryset = self.paginate_queryset(queryset)
         serializer = CourseSerializer(paginated_queryset, many=True)
         return self.get_paginated_response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        date = instance.last_update
+        instance.last_update = datetime.datetime.now()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        sending_mail.delay(instance.id, date)
+        return Response(serializer.data)
 
 
 class LessonCreateAPIView(generics.CreateAPIView):
@@ -78,6 +96,18 @@ class LessonUpdateAPIView(generics.UpdateAPIView):
     queryset = Lesson.objects.all()
     permission_classes = [IsAuthenticated, IsUserAdmDRF | IsUserOwner]
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        date = instance.course.last_update
+        instance.course.last_update = datetime.datetime.now()
+        instance.course.save(update_fields=['last_update'])
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        sending_mail.delay(instance.course.id, date)
+        return Response(serializer.data)
+
 
 class LessonDestroyAPIView(generics.DestroyAPIView):
     queryset = Lesson.objects.all()
@@ -92,6 +122,7 @@ class SubscriptionCreateAPIView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    @swagger_auto_schema(operation_description="Add or remove the subscription on a course")
     def post(self, *args, **kwargs):
         user = self.request.user
         course_id = self.request.data.get('course')

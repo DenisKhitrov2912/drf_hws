@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -14,7 +16,7 @@ class User(AbstractUser):
     phone = models.CharField(verbose_name='телефон', **NULLABLE)
     city = models.CharField(max_length=50, verbose_name='город', **NULLABLE)
     is_active = models.BooleanField(default='True', verbose_name='активность')
-
+    last_login = models.DateTimeField(auto_now=True, verbose_name="Последний вход", **NULLABLE)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
@@ -33,6 +35,9 @@ class Payments(models.Model):
     paid_lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, verbose_name='оплаченный урок', **NULLABLE)
     pay_sum = models.PositiveIntegerField(verbose_name='сумма оплаты')
     pay_transfer = models.BooleanField(default=True, verbose_name='оплата переводом')
+    session_id = models.CharField(max_length=250, **NULLABLE, verbose_name="id сессии")
+    payment_link = models.URLField(max_length=500, **NULLABLE, verbose_name="Ссылка на оплату")
+    payment_status = models.TextField(**NULLABLE, verbose_name="статус оплаты")
 
     def __str__(self):
         return f"{self.user}"
