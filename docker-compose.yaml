@@ -6,38 +6,23 @@ services:
     restart: on-failure
     env_file:
       - .env
-    expose:
-      - "5432"
+    ports:
+      - "5433:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "-c", "pg_isready -U $POSTGRES_USER" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
     image: redis:latest
     restart: on-failure
-    healthcheck:
-      test: [ "CMD-SHELL", "redis-cli ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    expose:
-      - "6379"
+    ports:
+      - "6378:6379"
 
   app:
     build: .
     tty: true
-    expose:
-      - "8000"
+    ports:
+      - "8000:80"
     command: sh -c "python3 manage.py migrate && python3 manage.py runserver 0.0.0.0:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     volumes:
       - .:/app
 

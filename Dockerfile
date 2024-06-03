@@ -1,11 +1,14 @@
-FROM python:latest
+FROM python:3.11.5-slim
 
 WORKDIR /app
 
-COPY pyproject.toml /
+RUN pip install eventlet
 
-COPY poetry.lock /
+RUN pip install poetry
 
-RUN poetry install --no-dev
+COPY pyproject.toml poetry.lock* /app/
+
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi
 
 COPY . .
