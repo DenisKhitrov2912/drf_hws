@@ -10,12 +10,11 @@ services:
       - "5433:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:latest
-    restart: on-failure
-    ports:
-      - "6378:6379"
+    healthcheck:
+      test: [ "CMD-SHELL", "-c", "pg_isready -U $POSTGRES_USER" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   app:
     build: .
@@ -23,13 +22,29 @@ services:
     ports:
       - "8000:8000"
     command: sh -c "python3 manage.py migrate && python3 manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - .:/app
+
+  redis:
+    image: redis:latest
+    restart: on-failure
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "6378:6379"
 
   celery:
     build: .
     tty: true
-    command: celery -A config worker -l INFO -P eventlet
+    command: celery -A DRF_coursework worker -l INFO -P eventlet
     restart: on-failure
     volumes:
       - .:/app
@@ -43,7 +58,7 @@ services:
   celery-beat:
     build: .
     tty: true
-    command: celery -A config beat -l INFO
+    command: celery -A DRF_coursework beat -l INFO
     restart: on-failure
     volumes:
       - .:/app
